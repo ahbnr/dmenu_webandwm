@@ -1,0 +1,32 @@
+#!/bin/zsh
+
+# Allows to start programs from PATH, switch to windows and run searches using "?" prefix.
+# DuckDuckGo bangs can directly be entered with the "!" prefix
+
+# Dependencies: xdg-open, awk, wmctrl, dmenu, zsh
+
+BROWSER_OPEN="xdg-open"
+BROWSER="Mozilla Firefox"
+SEARCH_ENGINE="https://duckduckgo.com/?q="
+# Commands to exclude from the menu
+IGNORE=("chromedriver")
+
+{
+    # Get executables on the path and filter them using the ignore list
+    {dmenu_path & echo ${IGNORE[@]}} | sort | uniq -u  &
+    # Get open windows
+    wmctrl -l |
+    # and add a window symbol in front of them
+    awk '{ print "类", substr($0, index($0,$4)), $1 }';
+} |
+    dmenu -l 5 -i $@ |
+    read x
+
+case "$(echo $x | awk '{ printf "%s", substr($1, 1, 1) }')" in
+  "!") $BROWSER_OPEN "$SEARCH_ENGINE$x";
+        wmctrl -a "$BROWSER";;
+  "?")  $BROWSER_OPEN "$SEARCH_ENGINE${x:1}";
+        wmctrl -a "$BROWSER";;
+  "类") wmctrl -ia "$(echo $x | awk '{ print $NF }')";;
+  *) $x;;
+esac
